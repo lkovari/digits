@@ -372,6 +372,7 @@ private fun syncIssueMessage(issue: SyncIssue): String {
 private fun AboutDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val repoUrl = stringResource(R.string.about_repo_url)
+    val webUrl = stringResource(R.string.about_web_url)
     InfoPanelDialog(onDismiss = onDismiss) {
         Text(
             text = stringResource(R.string.about_title),
@@ -389,6 +390,16 @@ private fun AboutDialog(onDismiss: () -> Unit) {
             textDecoration = TextDecoration.Underline,
             modifier = Modifier.clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repoUrl)))
+            }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = stringResource(R.string.about_web_label))
+        Text(
+            text = webUrl,
+            color = NumbersBlue,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier.clickable {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webUrl)))
             }
         )
         Spacer(modifier = Modifier.height(16.dp))

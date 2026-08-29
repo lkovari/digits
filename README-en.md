@@ -1,9 +1,13 @@
 # Numbers (Digits)
 
+**Language:** English · [Magyar](README-hu.md)
+
 Daily arithmetic puzzle for Android — inspired by the discontinued NY Times Digits game.
 Combine six numbers with `+ − × ÷` to hit each day’s five targets.
 
-Web sibling: [LKovariHome Numbers](https://lkovari.github.io/LKovariHome/#/digits/digits-game)
+Original Angular implementation (2023): [github.com/lkovari/LKovariHome — `src/app/digits`](https://github.com/lkovari/LKovariHome/commits/master/src/app/digits)
+
+Play on the web: [lkovari.github.io/LKovariHome/#/digits/digits-game](https://lkovari.github.io/LKovariHome/#/digits/digits-game)
 
 Privacy policy (EN/HU, Play Console URL): [numbers-privacy-policy.html](https://lkovari.github.io/KLHome/assets/bigfiles/numbers-privacy-policy.html)
 
@@ -305,6 +309,18 @@ After Play App Signing is enabled, also add the **App signing key certificate** 
 
 Logcat `GoogleApiManager … Unknown calling package name 'com.google.android.gms'` on emulators is usually a Play Services / emulator image issue, not an app defect and not a Play Store rejection. Use a Google Play system image or a physical device to verify.
 
+## Play Store listing copy and assets
+
+Copy-paste texts, form answers, and graphics for Google Play Console:
+
+| File | Contents |
+|------|----------|
+| [`store/listing-en.txt`](store/listing-en.txt) | EN name, short and full description, contacts, category |
+| [`store/listing-hu.txt`](store/listing-hu.txt) | HU name, short and full description |
+| [`store/whatsnew-en.txt`](store/whatsnew-en.txt) | EN release notes (1.0.0) |
+| [`store/whatsnew-hu.txt`](store/whatsnew-hu.txt) | HU release notes (1.0.0) |
+| [`store/play-console-form-answers.md`](store/play-console-form-answers.md) | Data safety, ads, rating, audience, and related answers |
+
 ## Branding assets (Play-ready)
 
 | Asset | Spec | Location |
@@ -313,7 +329,9 @@ Logcat `GoogleApiManager … Unknown calling package name 'com.google.android.gm
 | **Legacy launcher** | mdpi→xxxhdpi RGB | `app/src/main/res/mipmap-*` |
 | **In-app logo** | 512×512 RGBA transparent | `app/src/main/res/drawable/ic_numbers_logo.png` |
 | **Play high-res icon** | 512×512 RGB (no alpha) | [`store/hi-res-icon-512.png`](store/hi-res-icon-512.png) |
-| **Play feature graphic** | 1024×500 RGB | [`store/feature-graphic.png`](store/feature-graphic.png) |
+| **Play feature graphic (EN)** | 1024×500 RGB | [`store/feature-graphic.png`](store/feature-graphic.png) |
+| **Play feature graphic (HU)** | 1024×500 RGB | [`store/feature-graphic-hu.png`](store/feature-graphic-hu.png) |
+| **Phone screenshots** | 1080×1920 RGB, 24-bit PNG | [`store/screenshots/`](store/screenshots/) |
 | **Transparent master** | 512×512 RGBA | [`store/launcher-icon-512-transparent.png`](store/launcher-icon-512-transparent.png) |
 
 ## Angular reference issues

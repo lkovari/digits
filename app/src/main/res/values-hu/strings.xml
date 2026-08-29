@@ -35,6 +35,8 @@
     <string name="about_origin">Eredetileg 2023-ban készült</string>
     <string name="about_repo_label">Eredeti tároló</string>
     <string name="about_repo_url">https://github.com/lkovari/LKovariHome/commits/master/src/app/digits</string>
+    <string name="about_web_label">A weben</string>
+    <string name="about_web_url">https://lkovari.github.io/LKovariHome/#/digits/digits-game</string>
     <string name="about_author_years">2023–2026 – Kővári László</string>
 
     <string name="help_title">Hogyan játszunk a Digits-szel</string>

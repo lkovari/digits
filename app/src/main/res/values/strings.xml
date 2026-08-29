@@ -35,6 +35,8 @@
     <string name="about_origin">Originally implemented at 2023</string>
     <string name="about_repo_label">Original repository</string>
     <string name="about_repo_url">https://github.com/lkovari/LKovariHome/commits/master/src/app/digits</string>
+    <string name="about_web_label">On the web</string>
+    <string name="about_web_url">https://lkovari.github.io/LKovariHome/#/digits/digits-game</string>
     <string name="about_author_years">2023–2026 – László Kővári</string>
 
     <string name="help_title">How to play Digits</string>
