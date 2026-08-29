@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Numbers</string>
+    <string name="splash_tagline">Kombináld a számokat a cél eléréséhez</string>
+    <string name="menu_about">Névjegy</string>
+    <string name="menu_help">Súgó</string>
+    <string name="menu_more">Továbbiak</string>
+    <string name="close">Bezárás</string>
+    <string name="next">Következő</string>
+    <string name="play">Játék</string>
+    <string name="share">Megosztás</string>
+    <string name="dismiss">Elrejtés</string>
+    <string name="retry">Újra</string>
+    <string name="share_result">Numbers eredmény megosztása</string>
+
+    <string name="intro_banner">Ez egy napi számrejtvény, hasonló a NY Times Digits játékhoz, amelyet sajnos 2023. augusztus 8-án megszüntettek.</string>
+    <string name="title_numbers">Numbers</string>
+    <string name="title_numbers_digits_game">Numbers (digits) játék</string>
+    <string name="instruction_reach_target">Használd a számok bármely kombinációját a cél eléréséhez:</string>
+    <string name="invalid_operation">Érvénytelen művelet</string>
+
+    <string name="welcome_title">Üdvözöl a Numbers rejtvényjáték</string>
+    <string name="welcome_body">Fejlesztheted vele a számtani kombinációs készséged.</string>
+    <string name="stage_completed_title">Szint teljesítve</string>
+    <string name="stage_completed_nice">Szép! Megoldás:</string>
+    <string name="stage_completed_next_hint">A folytatáshoz koppints a Következőre.</string>
+    <string name="all_completed_title">Minden szint kész – Géniusz!</string>
+    <string name="all_completed_body">Gratulálunk! A megoldásaid:</string>
+    <string name="genius_share_header">Géniusz!</string>
+
+    <string name="sync_no_internet">Nincs internetkapcsolat. Offline rejtvénnyel játszol. A haladás ezen az eszközön marad, amíg újra kapcsolódsz.</string>
+    <string name="sync_database_unavailable">A rejtvényadatbázis nem elérhető. Helyi rejtvénnyel játszol. Koppints az Újra gombra, ha visszatért a kapcsolat.</string>
+
+    <string name="about_title">Numbers (digits) játék</string>
+    <string name="about_origin">Eredetileg 2023-ban készült</string>
+    <string name="about_repo_label">Eredeti tároló</string>
+    <string name="about_repo_url">https://github.com/lkovari/LKovariHome/commits/master/src/app/digits</string>
+    <string name="about_author_years">2023–2026 – Kővári László</string>
+
+    <string name="help_title">Hogyan játszunk a Digits-szel</string>
+    <string name="help_body">Használd a számok bármely kombinációját a célérték eléréséhez.\n\nÖsszeadhatsz, kivonhatsz, szorozhatsz vagy oszthatsz, hogy a lehető legközelebb kerülj a célhoz.\n\nNem kell mind a 6 számot felhasználnod.\n\nÚj számítás indításához válassz egy másik számot.\n\nA törtet vagy negatív számot eredményező műveletek nem fogadhatók el.\n\nCsillagokat érdemelsz, ha a leadott válasz:\n• Pontosan a célérték.\n• 1–10-zel tér el a célértéktől.\n• 11–25-tel tér el a célértéktől.\n\nÚj rejtvények minden nap éjfélkor jelennek meg.</string>
+</resources>

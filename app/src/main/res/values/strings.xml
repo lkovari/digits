@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Numbers</string>
+    <string name="splash_tagline">Combine the numbers to hit the target</string>
+    <string name="menu_about">About</string>
+    <string name="menu_help">Help</string>
+    <string name="menu_more">More</string>
+    <string name="close">Close</string>
+    <string name="next">Next</string>
+    <string name="play">Play</string>
+    <string name="share">Share</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="retry">Retry</string>
+    <string name="share_result">Share Numbers result</string>
+
+    <string name="intro_banner">This is a daily numbers puzzle, similar to the NY Times Digits, which unfortunately discontinued at August 8, 2023.</string>
+    <string name="title_numbers">Numbers</string>
+    <string name="title_numbers_digits_game">Numbers (digits) game</string>
+    <string name="instruction_reach_target">Use any combination of numbers to reach the target:</string>
+    <string name="invalid_operation">Invalid operation</string>
+
+    <string name="welcome_title">Welcome to the Numbers Puzzle Game</string>
+    <string name="welcome_body">It can improve your arithmetic combination ability.</string>
+    <string name="stage_completed_title">Stage completed</string>
+    <string name="stage_completed_nice">Nice! Solution:</string>
+    <string name="stage_completed_next_hint">Tap Next to continue.</string>
+    <string name="all_completed_title">All Game Completed Genius!</string>
+    <string name="all_completed_body">Congratulations! Your solutions:</string>
+    <string name="genius_share_header">Genius!</string>
+
+    <string name="sync_no_internet">No internet connection. Playing an offline puzzle. Progress stays on this device until you reconnect.</string>
+    <string name="sync_database_unavailable">Puzzle database is unreachable. Playing a local puzzle. Tap Retry when the connection is back.</string>
+
+    <string name="about_title">Numbers (digits) game</string>
+    <string name="about_origin">Originally implemented at 2023</string>
+    <string name="about_repo_label">Original repository</string>
+    <string name="about_repo_url">https://github.com/lkovari/LKovariHome/commits/master/src/app/digits</string>
+    <string name="about_author_years">2023–2026 – László Kővári</string>
+
+    <string name="help_title">How to play Digits</string>
+    <string name="help_body">Use any combination of numbers to reach the target number.\n\nAdd, subtract, multiply, or divide to get as close to the target number as you can.\n\nYou don\'t have to use all 6 numbers.\n\nTo start a new calculation, select a different number.\n\nCalculations that produce fractions or negative numbers won\'t be accepted.\n\nEarn stars when you submit an answer that is:\n• The target number.\n• 1 – 10 away from the target number.\n• 11 – 25 away from the target number.\n\nNew puzzles released daily at midnight.</string>
+</resources>

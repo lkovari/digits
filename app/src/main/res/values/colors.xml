@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="numbers_blue">#1E88E5</color>
+    <color name="numbers_blue_light">#BBDEFB</color>
+    <color name="numbers_wash">#EBF9FD</color>
+    <color name="splash_background">#EBF9FD</color>
+    <color name="numbers_white">#FFFFFF</color>
+    <color name="ic_launcher_background">#EBF9FD</color>
+</resources>
