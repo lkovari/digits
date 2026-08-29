@@ -3,6 +3,7 @@ package com.lkovari.mobile.apps.digits.ui.game
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,9 +17,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -122,10 +126,27 @@ fun DigitsGameScreen(
         viewModel.consumeShareText()
     }
 
+    BackHandler(
+        enabled = infoDialog != InfoDialog.None ||
+            state.welcomeVisible ||
+            state.stageCompleteVisible ||
+            state.allCompleteVisible ||
+            menuExpanded
+    ) {
+        when {
+            menuExpanded -> menuExpanded = false
+            infoDialog != InfoDialog.None -> infoDialog = InfoDialog.None
+            state.welcomeVisible -> viewModel.dismissWelcome()
+            state.stageCompleteVisible -> viewModel.dismissStageComplete()
+            state.allCompleteVisible -> viewModel.dismissAllComplete()
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(NumbersBlueWash)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
         if (state.loading && state.operands.isEmpty()) {
             CircularProgressIndicator(
@@ -273,6 +294,7 @@ fun DigitsGameScreen(
         if (state.stageCompleteVisible) {
             AlertDialog(
                 onDismissRequest = viewModel::dismissStageComplete,
+                modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
                 title = { Text(stringResource(R.string.stage_completed_title)) },
                 text = {
                     Column {
@@ -293,7 +315,8 @@ fun DigitsGameScreen(
 
         if (state.allCompleteVisible) {
             AlertDialog(
-                onDismissRequest = {},
+                onDismissRequest = viewModel::dismissAllComplete,
+                modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
                 title = { Text(stringResource(R.string.all_completed_title)) },
                 text = {
                     Column {
@@ -318,6 +341,11 @@ fun DigitsGameScreen(
                         }
                     ) {
                         Text(stringResource(R.string.share))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissAllComplete) {
+                        Text(stringResource(R.string.close))
                     }
                 }
             )
@@ -422,9 +450,30 @@ private fun InfoPanelDialog(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            decorFitsSystemWindows = false
+        )
     ) {
-        InfoPanel {
+        InfoPanel(
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.close)
+                    )
+                }
+            }
             content()
             Spacer(modifier = Modifier.height(16.dp))
             Row(

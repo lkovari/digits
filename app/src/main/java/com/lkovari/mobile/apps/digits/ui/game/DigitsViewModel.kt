@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lkovari.mobile.apps.digits.data.AndroidNetworkStatusChecker
+import com.lkovari.mobile.apps.digits.data.DailySession
+import com.lkovari.mobile.apps.digits.data.DailySessionLoader
 import com.lkovari.mobile.apps.digits.data.NetworkStatusChecker
 import com.lkovari.mobile.apps.digits.data.SyncIssue
 import com.lkovari.mobile.apps.digits.data.SyncIssueMessages
@@ -19,6 +21,7 @@ import com.lkovari.mobile.apps.digits.domain.PuzzleDay
 import com.lkovari.mobile.apps.digits.domain.PuzzleGenerator
 import com.lkovari.mobile.apps.digits.domain.StageLevel
 import com.lkovari.mobile.apps.digits.domain.StagePuzzle
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -62,25 +66,27 @@ class DigitsViewModel(
     private val networkStatusChecker: NetworkStatusChecker = AndroidNetworkStatusChecker(application)
     private val generator = PuzzleGenerator()
     private val engine = GameEngine()
+    private val sessionLoader = DailySessionLoader(
+        loadToday = progressRepository::loadToday,
+        lookupLocalePuzzle = firestoreRepository::lookupLocalePuzzle,
+        upsertPuzzle = firestoreRepository::upsertPuzzle,
+        isOnline = networkStatusChecker::isOnline,
+        generateStages = generator::generateStages,
+        endOfTodayMillis = { PuzzleFirestoreRepository.endOfTodayMillis() }
+    )
 
     private val stages = mutableListOf<StagePuzzle>()
     private var dayEpochMillis = PuzzleFirestoreRepository.endOfTodayMillis()
     private var firestoreDocumentId: String? = null
     private var localeTag = Locale.getDefault().toLanguageTag()
 
-    private val _uiState = MutableStateFlow(GameUiState())
+    private val _uiState = MutableStateFlow(GameUiState(loading = true))
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
     private val _events = MutableSharedFlow<GameUserEvent>()
     val events: SharedFlow<GameUserEvent> = _events.asSharedFlow()
 
     init {
-        val generated = generator.generateStages()
-        applyFreshPuzzle(
-            generated,
-            PuzzleFirestoreRepository.endOfTodayMillis(),
-            localeTag
-        )
         bootstrap()
     }
 
@@ -104,6 +110,10 @@ class DigitsViewModel(
 
     fun dismissWelcome() {
         _uiState.update { it.copy(welcomeVisible = false) }
+    }
+
+    fun dismissAllComplete() {
+        _uiState.update { it.copy(allCompleteVisible = false) }
     }
 
     fun dismissSyncBanner() {
@@ -252,32 +262,43 @@ class DigitsViewModel(
 
     private fun bootstrap() {
         viewModelScope.launch {
-            _uiState.update { it.copy(dateLabel = todayLabel()) }
-            val local = progressRepository.loadToday()
-            if (local != null) {
-                applyProgress(local, showWelcome = !local.completed)
-                if (local.completed) {
-                    val messages = local.stageLevels.map { level ->
-                        if (level.summary.isNotBlank()) {
-                            "${level.target} -> ${level.summary}"
-                        } else {
-                            level.target.toString()
-                        }
-                    }
-                    _uiState.update {
-                        it.copy(
-                            allCompleteVisible = true,
-                            allCompleteMessages = messages,
-                            shareText = null
-                        )
-                    }
-                }
-                if (!networkStatusChecker.isOnline()) {
-                    applySyncIssue(SyncIssue.NO_INTERNET)
-                }
-                return@launch
+            _uiState.update { it.copy(loading = true, dateLabel = todayLabel()) }
+            when (val session = sessionLoader.load(localeTag)) {
+                is DailySession.Restored -> applyRestoredSession(session)
+                is DailySession.Fresh -> applyFreshSession(session)
             }
-            loadRemoteOrOffline(preferExistingBoard = true)
+        }
+    }
+
+    private fun applyRestoredSession(session: DailySession.Restored) {
+        val local = session.progress
+        applyProgress(local, showWelcome = !local.completed)
+        if (local.completed) {
+            val messages = local.stageLevels.map { level ->
+                if (level.summary.isNotBlank()) {
+                    "${level.target} -> ${level.summary}"
+                } else {
+                    level.target.toString()
+                }
+            }
+            _uiState.update {
+                it.copy(
+                    allCompleteVisible = true,
+                    allCompleteMessages = messages,
+                    shareText = null
+                )
+            }
+        }
+        if (session.syncIssue != SyncIssue.NONE) {
+            applySyncIssue(session.syncIssue)
+        }
+    }
+
+    private fun applyFreshSession(session: DailySession.Fresh) {
+        firestoreDocumentId = session.documentId
+        applyFreshPuzzle(session.stages, session.dayEpochMillis, session.locale)
+        if (session.syncIssue != SyncIssue.NONE) {
+            applySyncIssue(session.syncIssue)
         }
     }
 
@@ -298,7 +319,7 @@ class DigitsViewModel(
             firestoreDocumentId = lookup.documentId
             val remote = lookup.todaysPuzzle
             if (remote != null && remote.stages.isNotEmpty()) {
-                if (stages.isEmpty() || _uiState.value.welcomeVisible) {
+                if (stages.isEmpty()) {
                     applyFreshPuzzle(remote.stages, remote.dayEpochMillis, remote.locale)
                 }
                 clearSyncIssue()
@@ -443,16 +464,17 @@ class DigitsViewModel(
         if (state.loading || stages.isEmpty()) {
             return
         }
+        val snapshot = DailyProgress(
+            dayEpochMillis = dayEpochMillis,
+            stageIndex = stageIndexOverride ?: state.stageIndex,
+            completed = completed,
+            stageLevels = state.stageLevels,
+            stages = stages.toList()
+        )
         viewModelScope.launch {
-            progressRepository.save(
-                DailyProgress(
-                    dayEpochMillis = dayEpochMillis,
-                    stageIndex = stageIndexOverride ?: state.stageIndex,
-                    completed = completed,
-                    stageLevels = state.stageLevels,
-                    stages = stages.toList()
-                )
-            )
+            withContext(NonCancellable) {
+                progressRepository.save(snapshot)
+            }
         }
     }
 

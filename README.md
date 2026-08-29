@@ -20,7 +20,7 @@ Launcher name: **Numbers**. Portrait only. Splash (~500 ms) then the game.
 | SDK | minSdk 24 / compileSdk 36 / targetSdk 36 / version `1.0.0` (`versionCode` 1) |
 | JVM | Java 11 / Kotlin `2.2.10` / Gradle `9.4.1` / AGP `9.2.1` |
 | Backend | Firebase Firestore project `numbers-55698`, collection `puzzledata` |
-| Local | DataStore Preferences `numbers_progress` (same calendar day only) |
+| Local | DataStore Preferences `numbers_progress` (same calendar day; load-first restore) |
 | Signing | Shared EKL release keystore (same pattern as sensors-s) |
 | Locales | English (`values`) and Hungarian (`values-hu`) |
 | Permission | `INTERNET` |
@@ -57,14 +57,15 @@ The in-app Help text still describes NYT-style **stars** for near-misses (1–10
 ```
 app/src/main/java/com/lkovari/mobile/apps/digits/
   domain/     Arithmetic, GameEngine, PuzzleGenerator, models, Operator
-  data/       PuzzleDataCodec, NetworkStatusChecker, firestore/, prefs/
+  data/       DailySessionLoader, PuzzleDataCodec, NetworkStatusChecker, firestore/, prefs/
   ui/         game/ (screen + ViewModel), splash/, theme/
 app/src/test/java/.../digits/
   domain/DomainTest.kt
   data/DataEdgeCasesTest.kt
+  data/DailySessionLoaderTest.kt
 ```
 
-`DigitsViewModel` loads a local generated board immediately, then bootstraps: restore same-day DataStore progress if present, otherwise look up Firestore and upsert today’s puzzle when missing.
+Startup is **load-first**. `DigitsViewModel` shows a spinner (`loading = true`) and asks `DailySessionLoader` for today’s session. It does **not** generate a board or write DataStore until that check finishes. That avoids a race that used to overwrite a completed stage on cold start.
 
 ## Daily puzzle and progress
 
@@ -92,7 +93,15 @@ app/src/test/java/.../digits/
 }
 ```
 
-**DataStore**: key `daily_progress`. Load returns `null` (and the day is treated as fresh) if the saved `day` is not today. In-progress operand `disabled` flags are persisted so a mid-stage board can resume.
+**Cold start** (`DailySessionLoader.load`):
+
+1. Read DataStore. If same-calendar-day progress exists → **restore** it (completed stages, current stage, remaining numbers). Do not generate, fetch, or upsert.
+2. Else if online and Firestore has a non-empty puzzle for **today** → use that board.
+3. Else **generate** five stages locally. If online, upsert that puzzle to Firestore (new document, or overwrite the locale’s existing doc when its `day` is stale). If offline or upsert fails, still play the generated board and show a sync banner.
+
+A fresh session is then written to DataStore so leaving the app (or Android killing the process) does not lose the board. Progress snapshots are taken before the save coroutine runs, and the write uses `NonCancellable` so clearing the ViewModel is less likely to drop the last completed stage.
+
+**DataStore**: Preferences file `numbers_progress`, key `daily_progress`. Load returns `null` (day treated as fresh) if the saved `day` is not today. In-progress operand `disabled` flags are persisted so a mid-stage board can resume. Survives process death and swipe-away. **Does not** survive Settings → Clear storage / uninstall (unless Android backup restores it). Firestore stores the **daily puzzle**, not whether the user finished a stage.
 
 **Offline / Firestore errors**: if there is no internet or Firestore throws, the app still starts a **local** daily puzzle, shows a red banner, and offers **Retry** and **Dismiss**. Classify:
 
@@ -102,11 +111,11 @@ app/src/test/java/.../digits/
 | Offline, or message looks like host/timeout/connection | `NO_INTERNET` |
 | Other exceptions while “online” (e.g. permission-denied) | `DATABASE_UNAVAILABLE` |
 
-Same-day progress stays on-device either way. Retry re-checks network and sync without wiping the current board when one already exists.
+Same-day progress stays on-device either way. Retry re-checks network and sync **without replacing a board that already has stages** (including restored progress). The header **Numbers** label and today’s date are display-only; they have no tap handler.
 
 ## Tests
 
-JUnit 4 **unit tests only** (`app/src/test`). There is no `androidTest` source set: no Espresso / Compose UI tests, no emulator tests, no Firestore or DataStore integration tests.
+JUnit 4 **unit tests only** (`app/src/test`), plus `kotlinx-coroutines-test` for `DailySessionLoaderTest`. There is no `androidTest` source set: no Espresso / Compose UI tests, no emulator tests, no Firestore or DataStore integration tests.
 
 ### How to run
 
@@ -121,6 +130,7 @@ From the repo root (needs Android SDK in `local.properties`):
 
 # One class
 ./gradlew :app:testDebugUnitTest --tests com.lkovari.mobile.apps.digits.domain.ArithmeticEdgeCasesTest
+./gradlew :app:testDebugUnitTest --tests com.lkovari.mobile.apps.digits.data.DailySessionLoaderTest
 
 # One method
 ./gradlew :app:testDebugUnitTest --tests com.lkovari.mobile.apps.digits.domain.ArithmeticEdgeCasesTest.divisionRequiresExactNonZeroDivisor
@@ -192,27 +202,79 @@ In Android Studio: right-click a test class/method or the `test` source set → 
 | `sameCalendarDayIgnoresTimeOfDay` | 08:00 and 22:30 same day; next calendar day is not |
 | `endOfTodayIsLateEvening` | `endOfTodayMillis()` is 23:59 local time |
 
+### `data/DailySessionLoaderTest.kt`
+
+**`DailySessionLoaderTest`** — cold-start restore vs generate/fetch (`kotlinx-coroutines-test` / `runTest`, fakes only)
+
+| Test | What it covers |
+|------|----------------|
+| `sameDayProgressIsRestoredWithoutGeneratingOrFetching` | Saved stage 1 complete → `Restored`; no generate, lookup, or upsert |
+| `restoredProgressKeepsCompletedStageWhenOffline` | Same restore offline → `NO_INTERNET`, still no generate/upsert |
+| `missingLocalProgressUsesTodaysRemotePuzzle` | Empty DataStore + today’s Firestore puzzle → `Fresh` from remote |
+| `missingLocalProgressGeneratesOfflineWithoutUpsert` | Empty DataStore + offline → generated board, `NO_INTERNET` |
+| `missingRemotePuzzleGeneratesAndUpserts` | Empty DataStore + no today’s remote → generate and upsert |
+
 ### Not covered (gaps)
 
-ViewModel bootstrap/retry, real Firestore, DataStore I/O, Compose layout (operator row), splash, and ShareSheet. Those need instrumented or fake-repository tests if you add them later.
+ViewModel `retrySync` wiring, real Firestore, real DataStore I/O, Compose layout (operator row), splash, and ShareSheet. Bootstrap **decision** order is covered by `DailySessionLoaderTest`. Those other surfaces need instrumented or fake-repository tests if you add them later.
 
 ## Build
+
+From the repo root. Needs Android SDK in `local.properties` (`sdk.dir=...`, gitignored), plus `app/google-services.json`.
 
 ```bash
 cp keystore.properties.example keystore.properties
 # fill storePassword / keyPassword (EKL)
 
-# app/google-services.json must exist (Firebase console → Android app)
-
-./gradlew :app:assembleDebug
-./gradlew :app:assembleRelease
 ./gradlew :app:test
 ./gradlew :app:installDebug
 ```
 
-SDK path: `local.properties` → `sdk.dir=...` (Android Studio / TreeCalc). That file is gitignored.
+Release: R8 minify + resource shrink, `debugSymbolLevel = SYMBOL_TABLE`, ProGuard keeps Firebase/GMS. **Unsigned** if `keystore.properties` is missing.
 
-Release: R8 minify + resource shrink, `debugSymbolLevel = SYMBOL_TABLE`, ProGuard keeps Firebase/GMS. Unsigned if `keystore.properties` is missing.
+### Debug APK (unsigned)
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+Output: `app/build/outputs/apk/debug/app-debug.apk`
+
+### Signed release APK
+
+Uses the `release` signing config from `keystore.properties` (see [Signing (EKL)](#signing-ekl)).
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+Output: `app/build/outputs/apk/release/app-release.apk`
+
+Confirm the APK is signed with the EKL upload key:
+
+```bash
+apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+`apksigner` ships with the Android SDK (`build-tools/<version>/apksigner`). The SHA-1 should match the Release fingerprint in [Firebase](#firebase).
+
+### Signed release AAB (Play Console)
+
+Play Store uploads use an Android App Bundle, not an APK. Same signing config as the release APK:
+
+```bash
+./gradlew :app:bundleRelease
+```
+
+Output: `app/build/outputs/bundle/release/app-release.aab`
+
+Upload that `.aab` in Play Console → Production / Testing → Create release. After Play App Signing is on, Google re-signs what users install; the local AAB is signed with the **upload** key (EKL).
+
+Both artifacts in one go:
+
+```bash
+./gradlew :app:assembleRelease :app:bundleRelease
+```
 
 ## Signing (EKL)
 
